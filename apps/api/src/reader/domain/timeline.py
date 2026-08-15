@@ -32,8 +32,9 @@ CLAUSE_PAUSE = 0.4
 SENTENCE_PAUSE = 0.9
 # Visible but silent (a bullet, a dot leader) still gets highlighted, so its cost
 # must stay above zero -- allocate owes every word a positive span. Well under
-# BASE_COST, though: at 1.0 a silent 10-dot leader held the highlight for 1.78s
-# of a 7.21s unit.
+# BASE_COST, though: priced at 1.0, a standalone 10-dot leader takes 1.78s of a
+# 7.21s unit (that unit's duration is measured; the split into three tokens is a
+# worked example -- in the corpus to hand a leader arrives glued to its title).
 UNSPOKEN_COST = 0.05
 
 

@@ -58,10 +58,11 @@ def _implied_cost(spans, index: int, reference_index: int, reference_cost: float
 
 
 def test_a_standalone_leader_does_not_get_a_base_cost_sized_share():
-    """The exact token shapes and duration measured on a real table-of-
-    contents unit (see .humanlayer task notes): 'Introduction' (spoken
-    unchanged), a standalone 10-dot leader (spoken form ''), '7' (spoken
-    unchanged), totalling 7.21s of audio.
+    """A table-of-contents unit whose measured audio is 7.21s: 'Introduction'
+    (spoken unchanged), a standalone 10-dot leader (spoken form ''), '7'
+    (spoken unchanged). The leader is written as its own token here; in the
+    PDFs to hand it arrives glued to the title, which the sibling suite
+    tests/properties/test_sentence_text.py covers.
 
     build_timeline([Sentence(start=0, words=("Introduction", "." * 10, "7"))],
     [7.21]) -> the dots span's implied cost is < BASE_COST (1.0).
