@@ -37,6 +37,7 @@ nav:
           - 3. Kokoro in-process behind a protocol: explanation/adr/0003-kokoro-in-process-behind-a-protocol.md
           - 4. Documentation images are test output: explanation/adr/0004-documentation-images-are-test-output.md
           - 5. Gherkin carries the quantifier: explanation/adr/0005-gherkin-quantifiers-split-examples-from-properties.md
+          - 6. Word order follows the PDF's structure: explanation/adr/0006-word-order-follows-the-pdfs-own-structure.md
 
 markdown_extensions:
   - admonition

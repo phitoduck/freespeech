@@ -50,8 +50,14 @@ curl -F "file=@page.pdf" http://localhost:8000/api/documents
 }
 ```
 
-Words arrive in reading order, each with the rectangle it occupies in PDF points
-(origin top-left). That rectangle is what a highlight would be drawn over.
+Words arrive in the order the PDF's own structure declares them, each with the
+rectangle it occupies in PDF points (origin top-left). That rectangle is what a
+highlight would be drawn over.
+
+For normally-produced documents — including multi-column ones, which come back a
+column at a time rather than interleaved — that is reading order. It is the
+producer's order, though, not a geometric one; see
+[ADR 0006](../explanation/adr/0006-word-order-follows-the-pdfs-own-structure.md).
 
 **`400`** — the upload could not be read as text. The message distinguishes why:
 
