@@ -226,6 +226,13 @@ def _slugify(text: str) -> str:
 _SUPPRESSED_SHOTS: dict[str, frozenset[str] | None] = {
     "A password-protected PDF says it is locked, not that it is broken": None,
     "A corrupt file named .pdf is reported once, clearly": None,
+    # Same reasoning as those two: @docs selects "runs in a real browser", not
+    # "needs a documentation image". This one also reuses "the play button is
+    # disabled", which shoots "02-blank-page" -- under this scenario's slug
+    # that shot would be an orphan, and the reader is not on a blank page here.
+    # ("A document the server has forgotten..." needs no entry: none of its
+    # steps take a shot at all.)
+    "A page whose narration fails says so, and offers to try again": None,
     "A PDF with no readable text says so instead of going blank": frozenset({"01-empty"}),
     "A non-PDF file is rejected without breaking the page": frozenset({"01-empty"}),
     "A one-page PDF shows no page controls at all": frozenset({"01-empty"}),

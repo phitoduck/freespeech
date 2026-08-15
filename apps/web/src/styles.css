@@ -76,6 +76,22 @@ h1 {
   font-size: 0.95rem;
 }
 
+.narration-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.narration-error [role="alert"] {
+  margin: 0;
+  color: #a33b1e;
+}
+
+.narration-error .pill-button {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9rem;
+}
+
 .reader {
   display: flex;
   flex-direction: column;

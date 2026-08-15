@@ -12,16 +12,22 @@ install:  ## Install everything, including the Kokoro model extra
 	$(WEB) pnpm install
 	uv run playwright install chromium
 
+# No `--reload`, deliberately (and as CLAUDE.md already says): uploaded
+# documents live in the API process's memory (ADR 0005), so every reload throws
+# away the PDF the reader currently has open and every page of it starts 404ing.
+# One agent editing `apps/api/` is enough to do that to someone testing by hand.
+# Restart the API yourself after changing it.
+#
 # Ctrl-C otherwise leaves uvicorn holding port 8000, breaking the next run. Kill
 # by *port*: `$$!` is just the `uv run` wrapper (uvicorn is its child and
 # outlives it), a name match misses it, and `kill 0` would kill the caller too.
 dev:  ## Run the API and the web app together
-	@uv run --extra tts uvicorn reader.app:create_app --factory --reload --port 8000 & \
+	@uv run --extra tts uvicorn reader.app:create_app --factory --port 8000 & \
 	trap 'lsof -ti tcp:8000 -sTCP:LISTEN | xargs kill 2>/dev/null' EXIT INT TERM; \
 	$(WEB) pnpm dev
 
 api:  ## Run just the API, with the real Kokoro model
-	uv run --extra tts uvicorn reader.app:create_app --factory --reload --port 8000
+	uv run --extra tts uvicorn reader.app:create_app --factory --port 8000
 
 web:  ## Run just the web app
 	$(WEB) pnpm dev

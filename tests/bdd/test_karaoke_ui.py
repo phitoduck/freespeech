@@ -82,6 +82,16 @@ def test_a_blank_page_says_so_instead_of_looking_broken():
     pass
 
 
+@scenario("karaoke.feature", "A page whose narration fails says so, and offers to try again")
+def test_a_page_whose_narration_fails_says_so_and_offers_to_try_again():
+    pass
+
+
+@scenario("karaoke.feature", "A document the server has forgotten asks for the PDF again")
+def test_a_document_the_server_has_forgotten_asks_for_the_pdf_again():
+    pass
+
+
 _GIF_FRAME_SECONDS = 0.2
 """One documentation GIF frame per this many seconds of narration (5fps)."""
 
@@ -561,3 +571,74 @@ def _i_advance_to_the_next_page(page):
 def _the_play_button_is_disabled(page, shot):
     expect(page.get_by_test_id("play-button")).to_be_disabled(timeout=15000)
     shot("02-blank-page")
+
+
+_NARRATION_ROUTE = "/api/documents/*/pages/*/narration**"
+
+
+@when("the next page's narration fails")
+def _the_next_pages_narration_fails(page, app_servers):
+    """Break the next narration request once, then get out of the way.
+
+    Registered after `visit_app`'s rewrite route, so Playwright consults this
+    one first; `route.fallback()` hands the retry down to that route and on to
+    the real API, which is what lets "I try again" genuinely succeed rather
+    than just re-render.
+    """
+    already_failed = {"yes": False}
+
+    def _handle(route):
+        if already_failed["yes"]:
+            route.fallback()
+            return
+        already_failed["yes"] = True
+        route.fulfill(
+            status=500, content_type="application/json", body='{"detail": "synthesis failed"}'
+        )
+
+    page.route(f"{app_servers['web']}{_NARRATION_ROUTE}", _handle)
+    page.get_by_test_id("next-page").click()
+
+
+@when("the server forgets the document and I go to the next page")
+def _the_server_forgets_the_document(page, app_servers):
+    """What a restarted API looks like from the browser: the document id handed
+    out moments ago is unknown, so every page of it answers 404. Documents are
+    held in-process only (ADR 0005), so this is a restart away at any time.
+    """
+    page.route(
+        f"{app_servers['web']}{_NARRATION_ROUTE}",
+        lambda route: route.fulfill(
+            status=404, content_type="application/json", body='{"detail": "no document"}'
+        ),
+    )
+    page.get_by_test_id("next-page").click()
+
+
+@when("I try again")
+def _i_try_again(page):
+    page.get_by_test_id("retry-narration").click()
+
+
+@then(parsers.parse('I see the error "{message}"'))
+def _i_see_the_error(page, message: str):
+    expect(page.get_by_role("alert")).to_have_text(message, timeout=15000)
+
+
+@then("the play button is enabled")
+def _the_play_button_is_enabled(page):
+    """45s, not the 15s used elsewhere: a real Kokoro synthesis stands between
+    the retry and the button coming back."""
+    expect(page.get_by_test_id("play-button")).to_be_enabled(timeout=45000)
+
+
+@then("the error is gone")
+def _the_error_is_gone(page):
+    """A retry that works but leaves the alert up is the same defect again --
+    the screen saying the page cannot be read while it plainly can."""
+    expect(page.get_by_role("alert")).to_have_count(0)
+
+
+@then("the drop zone is ready to accept a file again")
+def _the_drop_zone_is_ready_again(page):
+    expect(page.get_by_test_id("drop-zone")).to_be_visible(timeout=15000)

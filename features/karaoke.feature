@@ -116,6 +116,40 @@ Feature: Reading a page aloud with the words lit up
       Then the page shows the words:
         | Third |
 
+  Rule: a page that cannot be narrated says so, instead of looking like it is loading
+
+    Reported from real use: a reader opened a PDF, moved to a page with text,
+    and the Play button stayed greyed out for good while clicking a word did
+    nothing. Both are exactly right *while the narration is still loading*, and
+    nothing on screen told the two apart. The failure was caught and stored all
+    along — but the only place the app renders an error is inside the drop
+    zone, which is no longer on screen once a page is showing, so it was
+    written to a state slot nothing could display.
+
+    @docs
+    Scenario: A page whose narration fails says so, and offers to try again
+      Given a two-page PDF reading "Page one has some words." and "Page two has different words."
+      And I have dropped it onto the drop zone
+      When the next page's narration fails
+      Then I see the error "This page could not be read aloud"
+      And the play button is disabled
+      When I try again
+      Then the play button is enabled
+      And the error is gone
+
+    # Documents live in the API's memory only (ADR 0005), so restarting it
+    # leaves the open document's id pointing at nothing and every page of it
+    # 404s. Trying again can never fix that — the reader has to hand the file
+    # over a second time, and needs telling so rather than being offered a
+    # button that will fail identically for as long as they keep pressing it.
+    @docs
+    Scenario: A document the server has forgotten asks for the PDF again
+      Given a two-page PDF reading "Page one has some words." and "Page two has different words."
+      And I have dropped it onto the drop zone
+      When the server forgets the document and I go to the next page
+      Then I see the error "The reader lost that document — drop the PDF again"
+      And the drop zone is ready to accept a file again
+
   Rule: the timeline is a total, ordered cover of the audio
 
     These are the properties that make the highlight trustworthy. The timeline

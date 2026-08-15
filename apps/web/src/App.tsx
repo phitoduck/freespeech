@@ -35,6 +35,10 @@ export function App(): JSX.Element {
   const [narration, setNarration] = useState<Narration | null>(null);
   const [status, setStatus] = useState<"" | "Uploading…" | "Preparing narration…">("");
   const [error, setError] = useState<string | undefined>(undefined);
+  // Separate from `error`, which only ever reaches the screen through DropZone:
+  // this one is for a failure that happens once the reader is already past it,
+  // and so has to be rendered by the reader itself.
+  const [narrationError, setNarrationError] = useState<string | undefined>(undefined);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeWordIndex, setActiveWordIndex] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -82,9 +86,20 @@ export function App(): JSX.Element {
     setIsPlaying(false);
     setActiveWordIndex(null);
     setNarration(null);
+    setNarrationError(undefined);
     setStatus("Preparing narration…");
     try {
       const narrRes = await fetch(`/api/documents/${docId}/pages/${index}/narration?voice=am_adam`);
+      // The API holds documents in memory only (ADR 0005), so a restarted
+      // server 404s every page of a document the reader still has open. No
+      // amount of retrying brings it back — ask for the file again instead.
+      if (narrRes.status === 404) {
+        if (requestIdRef.current !== requestId) return;
+        setDoc(null);
+        setPageIndex(null);
+        setError("The reader lost that document — drop the PDF again");
+        return;
+      }
       if (!narrRes.ok) throw new Error("narration failed");
       const narr = await narrRes.json();
       // A newer loadPage call (another page, or a freshly dropped document)
@@ -100,7 +115,7 @@ export function App(): JSX.Element {
         })),
       });
     } catch {
-      if (requestIdRef.current === requestId) setError("Something went wrong while reading that PDF");
+      if (requestIdRef.current === requestId) setNarrationError("This page could not be read aloud");
     } finally {
       if (requestIdRef.current === requestId) setStatus("");
     }
@@ -178,6 +193,21 @@ export function App(): JSX.Element {
           <button data-testid="play-button" className="pill-button play-button" onClick={togglePlay} disabled={!narration || isBlank}>
             {isPlaying ? "Pause" : "Play"}
           </button>
+          {narrationError && (
+            <div className="narration-error">
+              {/* The button sits outside the alert so screen readers announce the
+                  problem, not the remedy, and the alert's text stays exactly the
+                  message. */}
+              <p role="alert">{narrationError}</p>
+              <button
+                data-testid="retry-narration"
+                className="pill-button"
+                onClick={() => goToPage(page.index)}
+              >
+                Try again
+              </button>
+            </div>
+          )}
           {isBlank ? (
             <p>This page has no text</p>
           ) : (
