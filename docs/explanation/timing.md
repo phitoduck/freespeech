@@ -21,6 +21,7 @@ its words in proportion to how long each word ought to take to say:
 
 ```
 cost(word) = 0.05                       if nothing is said for it at all
+                                        (bullet, leader, zero-width space, dash)
            = 1.0                        otherwise: every word takes some time
            + 0.55 x vowel groups        syllables dominate speaking time
            + 0.08 x letters             long words take longer, syllables equal
@@ -32,18 +33,23 @@ cost(word) = 0.05                       if nothing is said for it at all
 Then each word gets `duration x cost / total_cost`, laid end to end.
 
 !!! note "Costed on what is said, not on what is printed"
-    Some tokens are pure layout. A table-of-contents leader —
-    `Introduction..........7`, one token straight out of the PDF — and a bare
-    bullet glyph are both stripped before Kokoro sees them, because it would
-    otherwise read the dots aloud one by one. They are still *on the page* and
-    still get highlighted, so they still need a span; but pricing them at the
-    full base cost gave a silent 10-dot leader **1.78s of a 7.21s unit**, and
-    the highlight sat there while the voice moved on.
+    Some tokens are pure layout. A bullet glyph, a table-of-contents leader
+    (`Introduction..........7` arrives as one token), a zero-width space, a bare
+    dash — the model renders each as **exactly 0.0s of audio**, measured. They
+    are still *on the page* and still get highlighted, so they still need a
+    span; but at the full base cost they were paid for silence, and the
+    highlight sat on them while the voice moved on.
 
-    So cost is measured on the same stripped form the synthesiser receives. The
-    leader now costs 0.05 and gets a 0.06s flicker. As a side effect `Wait....`
-    no longer earns the 0.9 sentence pause: it is spoken as "Wait", with no full
-    stop to breathe after.
+    So cost is measured on the same stripped form the synthesiser receives, and
+    a token that says nothing costs 0.05 instead of 1.0 — a flicker rather than
+    a stop. Across nine real PDFs that repriced **86 of 2,653 tokens (3.2%)**,
+    reclaiming up to 3.7% of a page's narration. A side effect: `Wait....` no
+    longer earns the 0.9 sentence pause, because it is spoken as "Wait", with no
+    full stop to breathe after.
+
+    The rule is deliberately *not* "anything without letters or digits". `🎉`
+    (1.29s), `&` (0.74s), `+`, `/`, `=`, `→` and `~` are all measured audible,
+    and a test pins each of them against exactly that over-broad fix.
 
 !!! note "Why digits count separately"
     They were missed at first, and it mattered. The letter class is

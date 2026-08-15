@@ -23,8 +23,16 @@ _TERMINATORS = ".!?"
 _INITIAL = re.compile(r"^[A-Z]\.$")
 _BREAK_CHARS = frozenset(",;:-")  # a unit may end right after one, no audible jolt
 _BULLETS = frozenset("●•▪-")  # glued onto the next word by extraction; a unit ends before one
-_DROP_BULLETS = str.maketrans("", "", "●•▪")  # dropped from the spoken form only: Kokoro vocalises
-# these (unlike "-", which it already ignores), so speaking them mismatches the predicted duration
+# Dropped from the spoken form wherever they appear. Kokoro vocalises a bullet glyph
+# ("black circle"), so speaking one mismatches the predicted duration; U+200B is a
+# zero-width space, invisible on the page and 0.0s of audio, but it splits a vowel run
+# and so invents a syllable ('a​a' scores 2, 'aa' scores 1).
+_DROP_ALWAYS = str.maketrans("", "", "●•▪​")
+
+# '-', '–' and '^^' each measured 0.0s of audio as a whole token; a run of solely these
+# generalises from that. Meaningful inside a word, though, so only a token that is
+# nothing but them is dropped -- 'well-known' and '-5' keep their hyphen.
+_SILENT_ALONE = "-–^"
 
 # A table-of-contents leader, which PyMuPDF glues into one token with no
 # spaces: 'Introduction..............................1'. Kokoro reads the dots.
@@ -40,7 +48,8 @@ MAX_UNIT_WORDS = 24
 
 def spoken(word: str) -> str:
     """The part of a token the synthesiser actually voices. Empty when the
-    token is pure layout: a bare bullet or a leader says nothing at all.
+    token is pure layout -- a bullet or a leader, which the model reads aloud
+    but nobody wants read, or a bare dash, which it renders as 0.0s of audio.
 
     The single source of truth for "what is said for this word" -- both the
     text sent to Kokoro (Sentence.text) and the timing weight given to the
@@ -53,8 +62,11 @@ def spoken(word: str) -> str:
     'Introduction7'
     >>> spoken("..........")
     ''
+    >>> spoken("-"), spoken("well-known")   # bare dash vs hyphen in a word
+    ('', 'well-known')
     """
-    return _LEADER_RUN.sub("", word.translate(_DROP_BULLETS))
+    said = _LEADER_RUN.sub("", word.translate(_DROP_ALWAYS))
+    return said if said.strip(_SILENT_ALONE) else ""
 
 
 @dataclass(frozen=True, slots=True)
