@@ -23,8 +23,8 @@ _TERMINATORS = ".!?"
 _INITIAL = re.compile(r"^[A-Z]\.$")
 _BREAK_CHARS = frozenset(",;:-")  # a unit may end right after one, no audible jolt
 _BULLETS = frozenset("●•▪-")  # glued onto the next word by extraction; a unit ends before one
-_SPOKEN_BULLETS = "●•▪"  # dropped from .text only: Kokoro vocalises these (unlike "-", which it
-# already ignores), so speaking them mismatches the duration speech_cost predicted
+_DROP_BULLETS = str.maketrans("", "", "●•▪")  # dropped from the spoken form only: Kokoro vocalises
+# these (unlike "-", which it already ignores), so speaking them mismatches the predicted duration
 
 # A table-of-contents leader, which PyMuPDF glues into one token with no
 # spaces: 'Introduction..............................1'. Kokoro reads the dots.
@@ -36,6 +36,25 @@ _LEADER_RUN = re.compile(r"\.{4,}")
 # 262-word units -- ~80s of audio never re-anchored. 24 words is ~8-10s: short
 # enough to keep drift inaudible, long enough to rarely cut mid-sentence.
 MAX_UNIT_WORDS = 24
+
+
+def spoken(word: str) -> str:
+    """The part of a token the synthesiser actually voices. Empty when the
+    token is pure layout: a bare bullet or a leader says nothing at all.
+
+    The single source of truth for "what is said for this word" -- both the
+    text sent to Kokoro (Sentence.text) and the timing weight given to the
+    word (timeline.speech_cost) come from here, or they drift apart and the
+    highlight stops matching the voice.
+
+    >>> spoken("●Set")
+    'Set'
+    >>> spoken("Introduction....7")
+    'Introduction7'
+    >>> spoken("..........")
+    ''
+    """
+    return _LEADER_RUN.sub("", word.translate(_DROP_BULLETS))
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,19 +80,14 @@ class Sentence:
         >>> Sentence(start=0, words=("Introduction....7",)).text
         'Introduction7'
         """
-        table = str.maketrans("", "", _SPOKEN_BULLETS)
-        spoken = " ".join(
-            w for w in (_LEADER_RUN.sub("", word.translate(table)) for word in self.words) if w
-        )
-        # words were all-bullet/all-leader (or empty), e.g. ("●", "▪"): the fallback
-        # must be audible, not merely non-empty -- Kokoro synthesises "", "-" and "•"
-        # as silence (0.0s), and a zero-duration unit makes allocate() raise ValueError.
-        # "bullet" is kept (not replaced with a more topical word for the leader
-        # case) because it is the one fallback word actually measured audible
-        # against the real model (0.86s, see tests/services/test_speech.py) --
-        # swapping it for an unmeasured word risks reintroducing exactly the
-        # silent-fallback bug this module already shipped once.
-        return spoken or "bullet"
+        said = " ".join(filter(None, map(spoken, self.words)))
+        # Fallback for all-bullet/all-leader words, e.g. ("●", "▪"): must be audible,
+        # not merely non-empty -- Kokoro synthesises "", "-" and "•" as silence
+        # (0.0s), and a zero-duration unit makes allocate() raise. "bullet" stays
+        # because it is the one fallback measured audible against the real model
+        # (0.86s, tests/services/test_speech.py); swapping in an unmeasured word
+        # risks reintroducing exactly that silent-fallback bug.
+        return said or "bullet"
 
 
 def _ends_sentence(token: str) -> bool:

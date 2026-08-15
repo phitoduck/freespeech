@@ -20,7 +20,8 @@ Inside a sentence, we estimate. The sentence's measured duration is divided amon
 its words in proportion to how long each word ought to take to say:
 
 ```
-cost(word) = 1.0                        every word takes some time
+cost(word) = 0.05                       if nothing is said for it at all
+           = 1.0                        otherwise: every word takes some time
            + 0.55 x vowel groups        syllables dominate speaking time
            + 0.08 x letters             long words take longer, syllables equal
            + 0.65 x digits              each digit is read as its own word
@@ -29,6 +30,20 @@ cost(word) = 1.0                        every word takes some time
 ```
 
 Then each word gets `duration x cost / total_cost`, laid end to end.
+
+!!! note "Costed on what is said, not on what is printed"
+    Some tokens are pure layout. A table-of-contents leader —
+    `Introduction..........7`, one token straight out of the PDF — and a bare
+    bullet glyph are both stripped before Kokoro sees them, because it would
+    otherwise read the dots aloud one by one. They are still *on the page* and
+    still get highlighted, so they still need a span; but pricing them at the
+    full base cost gave a silent 10-dot leader **1.78s of a 7.21s unit**, and
+    the highlight sat there while the voice moved on.
+
+    So cost is measured on the same stripped form the synthesiser receives. The
+    leader now costs 0.05 and gets a 0.06s flicker. As a side effect `Wait....`
+    no longer earns the 0.9 sentence pause: it is spoken as "Wait", with no full
+    stop to breathe after.
 
 !!! note "Why digits count separately"
     They were missed at first, and it mattered. The letter class is
@@ -91,7 +106,8 @@ So `allocate()` is written so the guarantees hold **by construction**:
   overlaps are not unlikely, they are unrepresentable.
 - the final boundary is assigned the measured duration itself rather than a
   cumulative sum, so the timeline ends exactly where the audio does.
-- every word carries a base cost, so no span can be empty.
+- every word carries a positive cost — a full base cost, or 0.05 if nothing is
+  said for it — so no span can be empty.
 
 And then the properties in
 [`features/karaoke.feature`](../reference/behaviours.md) hold it to account

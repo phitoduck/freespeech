@@ -13,7 +13,7 @@ import re
 from bisect import bisect_right
 from dataclasses import dataclass
 
-from reader.domain.sentences import Sentence
+from reader.domain.sentences import Sentence, spoken
 
 _VOWEL_GROUP = re.compile(r"[aeiouy]+", re.IGNORECASE)
 _LETTERS = re.compile(r"[^\W\d_]", re.UNICODE)
@@ -30,6 +30,11 @@ LETTER_COST = 0.08
 DIGIT_COST = 0.65
 CLAUSE_PAUSE = 0.4
 SENTENCE_PAUSE = 0.9
+# Visible but silent (a bullet, a dot leader) still gets highlighted, so its cost
+# must stay above zero -- allocate owes every word a positive span. Well under
+# BASE_COST, though: at 1.0 a silent 10-dot leader held the highlight for 1.78s
+# of a 7.21s unit.
+UNSPOKEN_COST = 0.05
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,7 +51,9 @@ class Span:
 
 
 def speech_cost(word: str) -> float:
-    """Relative time to say a word.
+    """Relative time to say a word, priced on what is actually voiced for it
+    (sentences.spoken) rather than on the raw token -- 'Wait....' is said as
+    "Wait", so it earns no sentence-ending pause for a full stop nobody hears.
 
     >>> round(speech_cost("cat"), 2)
     1.79
@@ -54,7 +61,12 @@ def speech_cost(word: str) -> float:
     2.69
     >>> round(speech_cost("2024"), 2)
     3.6
+    >>> speech_cost("..........")   # a table-of-contents leader: silent
+    0.05
     """
+    word = spoken(word)
+    if not word:
+        return UNSPOKEN_COST
     syllables = len(_VOWEL_GROUP.findall(word))
     letters = len(_LETTERS.findall(word))
     digits = len(_DIGITS.findall(word))
