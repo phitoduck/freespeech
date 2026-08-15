@@ -65,10 +65,16 @@ class FakeSynthesizer:
     def synthesize(self, text: str, *, voice: str) -> bytes:
         """Return silent 24kHz mono 16-bit WAV bytes, 0.08s per character of `text`.
 
-        >>> len(FakeSynthesizer().synthesize("hi", voice="am_adam")) > 44
-        True
+        No floor: empty text really is 0.0s, as the real model returns for it.
+        A floor here would make a zero-duration unit -- which allocate() treats
+        as an error -- impossible for any test using this fake to reproduce.
+
+        >>> wav_duration(FakeSynthesizer().synthesize("hi", voice="am_adam"))
+        0.16
+        >>> wav_duration(FakeSynthesizer().synthesize("", voice="am_adam"))
+        0.0
         """
-        duration = max(0.08 * len(text), 0.05)
+        duration = 0.08 * len(text)
         frame_count = int(duration * 24000)
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wav:

@@ -22,6 +22,20 @@ def test_wav_duration_is_deterministic_for_the_same_text():
     assert first == second
 
 
+def test_fake_synthesizer_duration_is_exactly_0_08s_per_character_no_floor():
+    """Pins FakeSynthesizer's documented contract: 0.08s per character, with
+    no hidden minimum. The code currently applies `max(duration, 0.05)`,
+    which only ever bites on "" -- every non-empty text is already >= 0.08s.
+    That floor makes "" -> 0.05s in the fake, but measured directly against
+    KokoroSynthesizer, "" -> 0.0s in the real model. So the fake is more
+    forgiving than reality in exactly the case that matters: a silent
+    fallback (e.g. "-") passes every fast test yet crashes
+    timeline.allocate(), which raises ValueError on a non-positive duration.
+    """
+    assert wav_duration(FakeSynthesizer().synthesize("", voice="am_adam")) == 0.0
+    assert wav_duration(FakeSynthesizer().synthesize("hi", voice="am_adam")) == 0.16
+
+
 @pytest.mark.kokoro
 def test_kokoro_synthesizer_returns_a_wav_of_positive_duration():
     wav_bytes = KokoroSynthesizer().synthesize("Hello, this is a test.", voice="am_adam")
