@@ -26,6 +26,12 @@ _BULLETS = frozenset("●•▪-")  # glued onto the next word by extraction; a 
 _SPOKEN_BULLETS = "●•▪"  # dropped from .text only: Kokoro vocalises these (unlike "-", which it
 # already ignores), so speaking them mismatches the duration speech_cost predicted
 
+# A table-of-contents leader, which PyMuPDF glues into one token with no
+# spaces: 'Introduction..............................1'. Kokoro reads the dots.
+# The threshold is 4 rather than 1 because '...' and '…' are real punctuation
+# and must survive; the tests carry the measurements.
+_LEADER_RUN = re.compile(r"\.{4,}")
+
 # Unpunctuated PDF content (bullet lists, headings, tables, CVs) once produced
 # 262-word units -- ~80s of audio never re-anchored. 24 words is ~8-10s: short
 # enough to keep drift inaudible, long enough to rarely cut mid-sentence.
@@ -45,18 +51,28 @@ class Sentence:
 
     @property
     def text(self) -> str:
-        """Words joined for synthesis, with bullet glyphs removed -- Kokoro
-        vocalises them, so leaving them in makes the narrator speak "black
-        circle" and throws off the audio-duration estimate.
+        """Words joined for synthesis, with bullet glyphs and dot leaders
+        removed -- Kokoro vocalises a bullet glyph as "black circle" and
+        reads a leader's dots aloud one by one, both of which throw off the
+        audio-duration estimate.
 
         >>> Sentence(start=0, words=("●Set", "up")).text
         'Set up'
+        >>> Sentence(start=0, words=("Introduction....7",)).text
+        'Introduction7'
         """
         table = str.maketrans("", "", _SPOKEN_BULLETS)
-        spoken = " ".join(w for w in (word.translate(table) for word in self.words) if w)
-        # words were all-bullet (or empty), e.g. ("●", "▪"): the fallback must be
-        # audible, not merely non-empty -- Kokoro synthesises "", "-" and "•" as
-        # silence (0.0s), and a zero-duration unit makes allocate() raise ValueError
+        spoken = " ".join(
+            w for w in (_LEADER_RUN.sub("", word.translate(table)) for word in self.words) if w
+        )
+        # words were all-bullet/all-leader (or empty), e.g. ("●", "▪"): the fallback
+        # must be audible, not merely non-empty -- Kokoro synthesises "", "-" and "•"
+        # as silence (0.0s), and a zero-duration unit makes allocate() raise ValueError.
+        # "bullet" is kept (not replaced with a more topical word for the leader
+        # case) because it is the one fallback word actually measured audible
+        # against the real model (0.86s, see tests/services/test_speech.py) --
+        # swapping it for an unmeasured word risks reintroducing exactly the
+        # silent-fallback bug this module already shipped once.
         return spoken or "bullet"
 
 
