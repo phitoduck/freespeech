@@ -1,0 +1,146 @@
+:root {
+  color-scheme: light;
+  --bg: #faf6ef;
+  --ink: #2b2620;
+  --muted: #8a8175;
+  --accent: #b5651d;
+  --highlight: #f6d78c;
+  --border: #ddd3c0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+}
+
+.app {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.status {
+  min-height: 1.25rem;
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 0.75rem;
+}
+
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 0.75rem;
+  padding: 4rem 1.5rem;
+  text-align: center;
+  color: var(--muted);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.drop-zone[data-dragging="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--highlight) 30%, transparent);
+}
+
+.drop-zone p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.drop-zone [role="alert"] {
+  margin-top: 1rem;
+  color: #a33b1e;
+  font-style: normal;
+  font-size: 0.95rem;
+}
+
+.reader {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.pill-button {
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pill-button:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.pill-button:not(:disabled):hover {
+  border-color: var(--accent);
+}
+
+.play-button {
+  align-self: flex-start;
+  padding: 0.5rem 1.25rem;
+  font-size: 1rem;
+}
+
+.karaoke-text {
+  font-size: 1.25rem;
+  line-height: 2.1;
+}
+
+.karaoke-word {
+  cursor: pointer;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.05rem;
+}
+
+.karaoke-word:hover:not([data-active="true"]) {
+  background: color-mix(in srgb, var(--highlight) 35%, transparent);
+}
+
+/* The file input is visually hidden but still focusable, so the focus ring has
+   to be drawn on the drop zone the user can actually see. */
+.drop-zone:has(:focus-visible) {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.karaoke-word[data-active="true"] {
+  background: var(--highlight);
+  box-shadow: 0 0 0 2px var(--highlight);
+}
+
+.page-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--muted);
+}
+
+.page-controls button {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9rem;
+}

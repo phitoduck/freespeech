@@ -1,0 +1,66 @@
+[project]
+name = "pdf-karaoke-reader"
+version = "0.1.0"
+description = "A PDF reader that reads aloud and lights up each word as it is spoken"
+requires-python = ">=3.12,<3.13"
+dependencies = ["reader"]
+
+[project.optional-dependencies]
+# The real Kokoro model. Optional so the test suite never has to download it.
+tts = ["reader[tts]"]
+
+[tool.uv]
+package = false
+# `uv sync` prunes anything outside the requested set, so syncing one group used
+# to silently uninstall the Kokoro model and break the `-m kokoro` test. Ask for
+# both by default.
+default-groups = ["dev", "docs"]
+
+[tool.uv.workspace]
+members = ["apps/api"]
+
+[tool.uv.sources]
+reader = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-bdd>=8.1",
+    "hypothesis>=6.122",
+    "httpx>=0.27",
+    "playwright>=1.49",
+    "pytest-playwright>=0.6",
+    "ruff>=0.8",
+]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+bdd_features_base_dir = "features"
+markers = [
+    "docs: scenarios whose screenshots become documentation",
+    "property: scenarios driven by generated data rather than an example table",
+    "gif: the one scenario that records the animated demonstration for the docs",
+    "kokoro: exercises the real Kokoro model; slow, needs the tts extra",
+]
+filterwarnings = [
+    "error::DeprecationWarning",
+    # PyMuPDF's SWIG bindings emit this while the C extension is still being
+    # created. Raising there does not produce a traceback -- it segfaults the
+    # interpreter. Must stay ignored, not escalated.
+    "ignore:builtin type .* has no __module__ attribute:DeprecationWarning",
+    # pytest-bdd 8.1 registers fixtures through an API pytest 9 deprecated.
+    # Third-party; delete this line once pytest-bdd releases a fix.
+    "ignore::pytest.PytestRemovedIn10Warning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

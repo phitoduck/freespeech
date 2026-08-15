@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+
+# Node
+node_modules/
+apps/web/dist/
+*.tsbuildinfo
+
+# Build output
+site/
+
+# Machine-local agent state, not project configuration
+.claude/settings.local.json
+.claude/*.lock
+.claude/.headroom_wrap_marker.json
+
+# Scratch PDFs served to the browser during manual poking
+apps/web/public/*.pdf
+
+# NOT ignored, deliberately: docs/assets/generated/
+# Those images are the committed baselines that make the documentation
+# verifiable (ADR 0004). A screenshot that changes is a reviewable diff.

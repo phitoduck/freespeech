@@ -1,0 +1,47 @@
+site_name: Karaoke PDF Reader
+site_description: Drop a PDF, hear it read aloud, watch each word light up
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+    - scheme: slate
+      primary: indigo
+
+# Diátaxis. Four quadrants, four different jobs:
+#   Tutorial    — learning, by doing one thing end to end
+#   How-to      — a goal you already have
+#   Reference   — description; generated from the test run (ADR 0004)
+#   Explanation — understanding; where the ADRs live
+nav:
+  - Home: index.md
+  - Tutorial:
+      - Read your first PDF aloud: tutorials/read-your-first-pdf.md
+  - How-to:
+      - Change the voice: how-to/change-the-voice.md
+      - Regenerate the documentation screenshots: how-to/regenerate-screenshots.md
+      - Add a behaviour: how-to/add-a-behaviour.md
+  - Reference:
+      - The interface, screen by screen: reference/interface.md
+      - HTTP API: reference/http-api.md
+      - Behaviours (Gherkin): reference/behaviours.md
+  - Explanation:
+      - How the karaoke timing works: explanation/timing.md
+      - Testing strategy: explanation/testing-strategy.md
+      - Decisions:
+          - 1. Record architecture decisions: explanation/adr/0001-record-architecture-decisions.md
+          - 2. Derive word timings per sentence: explanation/adr/0002-derive-word-timings-per-sentence.md
+          - 3. Kokoro in-process behind a protocol: explanation/adr/0003-kokoro-in-process-behind-a-protocol.md
+          - 4. Documentation images are test output: explanation/adr/0004-documentation-images-are-test-output.md
+          - 5. Gherkin carries the quantifier: explanation/adr/0005-gherkin-quantifiers-split-examples-from-properties.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - tables

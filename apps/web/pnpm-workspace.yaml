@@ -1,0 +1,10 @@
+# pnpm 11 refuses to install until every dependency with a build script gets an
+# explicit yes/no. Both of these ship prebuilt platform binaries (koffi.node,
+# libhegel-*.dylib), so their postinstall scripts have nothing left to do.
+allowBuilds:
+  esbuild: false
+  koffi: false
+
+# Without this, the gate above makes pnpm treat deps as unverified and re-run
+# install on every `pnpm run`, failing the same way.
+verifyDepsBeforeRun: false
