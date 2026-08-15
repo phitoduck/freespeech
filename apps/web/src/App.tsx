@@ -45,6 +45,10 @@ export function App(): JSX.Element {
 
   // Derived, not its own state slot, so it can't drift out of sync with doc.
   const page = doc && pageIndex !== null ? doc.pages[pageIndex] : null;
+  // Blank pages (section dividers, the back of a title page) are real PDF content,
+  // not an error -- named once so the disabled Play button and the "no text"
+  // message can't drift apart on what counts as blank.
+  const isBlank = page?.words.length === 0;
 
   // Drive the highlight from audio.currentTime, one rAF loop for the life of the narration.
   useEffect(() => {
@@ -171,14 +175,18 @@ export function App(): JSX.Element {
         <DropZone onFile={handleFile} error={error} />
       ) : (
         <div className="reader" data-testid="page-view">
-          <button data-testid="play-button" className="pill-button play-button" onClick={togglePlay} disabled={!narration}>
+          <button data-testid="play-button" className="pill-button play-button" onClick={togglePlay} disabled={!narration || isBlank}>
             {isPlaying ? "Pause" : "Play"}
           </button>
-          <KaraokeText
-            words={page.words.map((w) => w.text)}
-            activeIndex={activeWordIndex}
-            onWordClick={handleWordClick}
-          />
+          {isBlank ? (
+            <p>This page has no text</p>
+          ) : (
+            <KaraokeText
+              words={page.words.map((w) => w.text)}
+              activeIndex={activeWordIndex}
+              onWordClick={handleWordClick}
+            />
+          )}
           {narration && (
             <audio
               ref={audioRef}

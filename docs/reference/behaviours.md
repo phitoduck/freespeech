@@ -113,6 +113,24 @@ Feature: Reading a page aloud with the words lit up
       When I drop it onto the drop zone
       Then there are no page controls
 
+    # Real PDFs have pages with no text of their own -- section dividers, the
+    # back of a title page -- and upload only rejects a document when EVERY
+    # page lacks text (see "A PDF with no readable text..." in upload.feature).
+    # So a blank page in the middle of an otherwise-readable document reaches
+    # the reader, and today it reproduces that same scenario's bug one level
+    # down: an empty reading area, a Play button that is enabled but does
+    # nothing when clicked, and nothing on screen to explain why.
+    @docs
+    Scenario: A blank page says so instead of looking broken
+      Given a three-page PDF whose middle page is blank
+      And I have dropped it onto the drop zone
+      When I advance to the next page
+      Then I see "This page has no text"
+      And the play button is disabled
+      When I advance to the next page
+      Then the page shows the words:
+        | Third |
+
   Rule: the timeline is a total, ordered cover of the audio
 
     These are the properties that make the highlight trustworthy. The timeline

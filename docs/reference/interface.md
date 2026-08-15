@@ -109,3 +109,17 @@ already loaded — the words and the audio always describe the same page.
 !!! note "The indicator counts from one, the API counts from zero"
     *Page 1 of 2* is `pages/0` over HTTP. People number pages from one; the API
     indexes from zero. See [HTTP API](http-api.md#get-apidocumentsidpagesnnarration).
+
+### A page with no text
+
+Real documents contain blank pages — section dividers, the back of a title
+page. An upload is only rejected when *every* page lacks text, so these reach
+the reader, which says so and refuses to offer a narration there.
+
+![A blank page, saying it has no text, with the play button disabled](../assets/generated/a-blank-page-says-so-instead-of-looking-broken/02-blank-page.png)
+
+The page controls stay live, so you can carry on to the next page. The API is
+untroubled by this: a page with no words returns `200` with `duration: 0.0`, an
+empty `spans` list and a valid, header-only WAV. It is only the reader that
+would otherwise look broken — an empty screen with an enabled play button that
+does nothing when pressed.

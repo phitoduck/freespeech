@@ -77,6 +77,11 @@ def test_a_one_page_pdf_shows_no_page_controls_at_all():
     pass
 
 
+@scenario("karaoke.feature", "A blank page says so instead of looking broken")
+def test_a_blank_page_says_so_instead_of_looking_broken():
+    pass
+
+
 _GIF_FRAME_SECONDS = 0.2
 """One documentation GIF frame per this many seconds of narration (5fps)."""
 
@@ -334,6 +339,31 @@ def _a_three_page_pdf() -> dict:
     return {"name": "three-page.pdf", "mimeType": "application/pdf", "buffer": doc.tobytes()}
 
 
+@given("a three-page PDF whose middle page is blank", target_fixture="dropped_file")
+def _a_three_page_pdf_whose_middle_page_is_blank() -> dict:
+    """Built with PyMuPDF directly, not `reader.services.extraction.render` (used for
+    every other PDF fixture in this file): `render` lays out text and cannot produce
+    a page with none, which is the whole point of this fixture.
+
+    >>> doc = pymupdf.open(
+    ...     stream=_a_three_page_pdf_whose_middle_page_is_blank()["buffer"], filetype="pdf"
+    ... )
+    >>> [page.get_text().strip() for page in doc]
+    ['First page has words here.', '', 'Third page has words too.']
+    """
+    doc = pymupdf.open()
+    p = doc.new_page(width=612, height=792)
+    p.insert_textbox(
+        pymupdf.Rect(60, 60, 550, 700), "First page has words here.", fontsize=12, fontname="helv"
+    )
+    doc.new_page(width=612, height=792)  # deliberately blank
+    p = doc.new_page(width=612, height=792)
+    p.insert_textbox(
+        pymupdf.Rect(60, 60, 550, 700), "Third page has words too.", fontsize=12, fontname="helv"
+    )
+    return {"name": "blank-middle.pdf", "mimeType": "application/pdf", "buffer": doc.tobytes()}
+
+
 def _wait_until(page, predicate, *, timeout_ms: int = 20000, interval_ms: int = 50) -> None:
     """Poll ``predicate`` on Playwright's own cooperative loop (via ``wait_for_timeout``,
     which yields control so route handlers running in other greenlets can progress)
@@ -513,3 +543,21 @@ def _i_go_to_the_previous_page(page, shot):
 def _there_are_no_page_controls(page):
     expect(page.get_by_test_id("page-view")).to_be_visible(timeout=15000)
     expect(page.locator('[data-testid="page-controls"]')).to_have_count(0)
+
+
+@when("I advance to the next page")
+def _i_advance_to_the_next_page(page):
+    """Deliberately not this file's shared `_navigate_page` (bound to "I go to
+    the next page"): that step asserts the play button re-enables once the new
+    page's narration has loaded, which is right for every other page in this
+    suite but wrong for the blank page this scenario navigates onto -- Play is
+    supposed to stay disabled there. Reusing it would make this scenario fail on
+    an assertion belonging to a different page's behaviour instead of its own.
+    """
+    page.get_by_test_id("next-page").click()
+
+
+@then("the play button is disabled")
+def _the_play_button_is_disabled(page, shot):
+    expect(page.get_by_test_id("play-button")).to_be_disabled(timeout=15000)
+    shot("02-blank-page")
