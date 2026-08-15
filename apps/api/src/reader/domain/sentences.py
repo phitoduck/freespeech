@@ -23,6 +23,8 @@ _TERMINATORS = ".!?"
 _INITIAL = re.compile(r"^[A-Z]\.$")
 _BREAK_CHARS = frozenset(",;:-")  # a unit may end right after one, no audible jolt
 _BULLETS = frozenset("●•▪-")  # glued onto the next word by extraction; a unit ends before one
+_SPOKEN_BULLETS = "●•▪"  # dropped from .text only: Kokoro vocalises these (unlike "-", which it
+# already ignores), so speaking them mismatches the duration speech_cost predicted
 
 # Unpunctuated PDF content (bullet lists, headings, tables, CVs) once produced
 # 262-word units -- ~80s of audio never re-anchored. 24 words is ~8-10s: short
@@ -43,7 +45,19 @@ class Sentence:
 
     @property
     def text(self) -> str:
-        return " ".join(self.words)
+        """Words joined for synthesis, with bullet glyphs removed -- Kokoro
+        vocalises them, so leaving them in makes the narrator speak "black
+        circle" and throws off the audio-duration estimate.
+
+        >>> Sentence(start=0, words=("●Set", "up")).text
+        'Set up'
+        """
+        table = str.maketrans("", "", _SPOKEN_BULLETS)
+        spoken = " ".join(w for w in (word.translate(table) for word in self.words) if w)
+        # words were all-bullet (or empty), e.g. ("●", "▪"): the fallback must be
+        # audible, not merely non-empty -- Kokoro synthesises "", "-" and "•" as
+        # silence (0.0s), and a zero-duration unit makes allocate() raise ValueError
+        return spoken or "bullet"
 
 
 def _ends_sentence(token: str) -> bool:
